@@ -9,5 +9,7 @@
     <!-- Publication -->
     <!--    none.   -->
 
-    <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true" />
+    <group ns="$(arg veh)">
+        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen" required="true" />
+    </group>
 </launch>

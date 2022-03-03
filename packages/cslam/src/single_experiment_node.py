@@ -20,15 +20,16 @@ from cslam import TimedLocalizationExperiment
 from cslam_app import manager, logger
 
 # constants
-MAP_NAME = "TTIC_large_loop"
-EXPERIMENT_DURATION = 12
-PRECISION_MSECS = 100
+MAP_NAME = "ETU_autolab_track"
+EXPERIMENT_DURATION = 120
+PRECISION_MSECS = 250
 TRACKABLES = [
     AutolabReferenceFrame.TYPE_DUCKIEBOT_FOOTPRINT
 ]
-TILE_SIZE = 0.595
-MAP_WIDTH = TILE_SIZE * 4
-MAP_HEIGHT = TILE_SIZE * 5
+TILE_SIZE_H = 0.542
+TILE_SIZE_V = 0.52
+MAP_WIDTH = TILE_SIZE_H * 7
+MAP_HEIGHT = TILE_SIZE_V * 11
 DEBUG = False
 
 
@@ -55,13 +56,14 @@ def color(frame_type: str) -> str:
         "watchtower": "orange",
     }
     for prefix, mark in colors.items():
+        print(frame_type, mark)
         if frame_type.startswith(prefix):
             return mark
     return "green"
 
 
 def nodelist(g, prefix: str):
-    return [n for n in g if n.lstrip('/').startswith(prefix)]
+    return [n for n in g if n.startswith(prefix)]
 
 
 if __name__ == '__main__':
@@ -115,8 +117,12 @@ if __name__ == '__main__':
     # for edge in G.edges:
     #     edges.add((edge[0], edge[1]))
     # nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='blue')
-
+    from pprint import pprint
     pos = {}
+    ground_truth = {}
+    ground_truth["AutolabReferenceFrame.TYPE_DUCKIEBOT_FOOTPRINT"] = []
+    ground_truth["AutolabReferenceFrame.TYPE_DUCKIEBOT_TAG"] = []
+
     for nname, ndata in G.nodes.data():
         pos[nname] = ndata["pose"].t[:2]
 
@@ -124,9 +130,13 @@ if __name__ == '__main__':
     for nname, ndata in G.nodes.data():
         if ndata["type"] not in [AutolabReferenceFrame.TYPE_DUCKIEBOT_FOOTPRINT, AutolabReferenceFrame.TYPE_DUCKIEBOT_TAG]:
             continue
+        if ndata["type"] == AutolabReferenceFrame.TYPE_DUCKIEBOT_FOOTPRINT:
+            ground_truth["AutolabReferenceFrame.TYPE_DUCKIEBOT_FOOTPRINT"].append([ndata["time"], *ndata["pose"].t, *ndata["pose"].q])
+        else:
+            ground_truth["AutolabReferenceFrame.TYPE_DUCKIEBOT_TAG"].append([ndata["time"], *ndata["pose"].t, *ndata["pose"].q])
         a = list(tf.transformations.euler_from_quaternion(ndata["pose"].q))
         print(f'Node[{nname}][{ndata["type"]}]:\n\t xyz: {ndata["pose"].t}\n\t rpw: {a}\n')
-
+        
         if DEBUG:
             t = TransformStamped()
             t.header.stamp = rospy.Time.now()
@@ -139,6 +149,16 @@ if __name__ == '__main__':
             )
             br.sendTransform(t)
 
+
+    import csv
+    bot_ground_file = open('/code/catkin_ws/src/dt-autolab-localization/bot.csv', "w")
+    writer = csv.writer(bot_ground_file)
+    writer.writerows(ground_truth["AutolabReferenceFrame.TYPE_DUCKIEBOT_FOOTPRINT"])
+    bot_ground_file.close()
+    tower_ground_file = open('/code/catkin_ws/src/dt-autolab-localization/tower.csv', "w")
+    writer = csv.writer(tower_ground_file)
+    writer.writerows(ground_truth["AutolabReferenceFrame.TYPE_DUCKIEBOT_TAG"])
+    tower_ground_file.close()
     links = defaultdict(set)
     for u, v, _ in G.edges:
         links[v].add(u)
@@ -167,15 +187,20 @@ if __name__ == '__main__':
         origin='upper',
         extent=[0, MAP_WIDTH, 0, MAP_HEIGHT]
     )
+    
 
-    for entity in ["world", "watchtower", "autobot", "tag/3"]:
+    for entity in ["world", "watchtower", "autobot", "tag/3", "tag/4"]:
+        #if entity == "tag/3":
+            #pprint(nodelist(G, entity))
+            #pprint(marker(entity))
+            #pprint(pos)
         nx.draw_networkx_nodes(
             G,
             pos,
             nodelist=nodelist(G, entity),
             node_shape=marker(entity),
             node_color=color(entity),
-            node_size=150
+            node_size=100
         )
 
     edges = set()
