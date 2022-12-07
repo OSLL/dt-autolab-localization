@@ -21,7 +21,7 @@ from cslam_app import manager, logger
 
 # constants
 MAP_NAME = "ETU_autolab_track"
-EXPERIMENT_DURATION = 120
+EXPERIMENT_DURATION = 60
 PRECISION_MSECS = 250
 TRACKABLES = [
     AutolabReferenceFrame.TYPE_DUCKIEBOT_FOOTPRINT
@@ -30,7 +30,7 @@ TILE_SIZE_H = 0.542
 TILE_SIZE_V = 0.52
 MAP_WIDTH = TILE_SIZE_H * 7
 MAP_HEIGHT = TILE_SIZE_V * 11
-DEBUG = False
+DEBUG = True
 
 
 def marker(frame_type: str) -> str:
